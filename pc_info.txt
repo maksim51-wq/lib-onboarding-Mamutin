@@ -1,0 +1,67 @@
+@echo off
+chcp 65001
+
+setlocal enabledelayedexpansion
+set "REPORT=%~dp0pc_report.txt"
+
+echo «Диагностика компьютера» > "%REPORT%"
+echo. >> "%REPORT%"
+
+echo «Операционная система»
+echo «Операционная система» >> "%REPORT%"
+wmic os get Caption, Version
+wmic os get Caption, Version >> "%REPORT%"
+echo. >> "%REPORT%"
+
+echo «Процессор»
+echo «Процессор» >> "%REPORT%"
+wmic cpu get name
+wmic cpu get name >> "%REPORT%"
+echo. >> "%REPORT%"
+
+echo «Оперативная память»
+echo «Оперативная память» >> "%REPORT%"
+setlocal enabledelayedexpansion
+for /f "tokens=1,2 delims==" %%A in ('wmic OS get TotalVisibleMemorySize /format:list ^| findstr "="') do (
+    if not "%%B"=="" (
+        set /a total_mem=%%B/1048576
+    )
+)
+for /f "tokens=1,2 delims==" %%A in ('wmic OS get FreePhysicalMemory /format:list ^| findstr "="') do (
+    if not "%%B"=="" (
+        set /a free_mem=%%B/1048576
+    )
+)
+echo Всего памяти: !total_mem! ГБ
+echo Свободно памяти: !free_mem! ГБ
+echo Всего памяти: !total_mem! ГБ >> "%REPORT%"
+echo Свободно памяти: !free_mem! ГБ >> "%REPORT%"
+echo.
+
+echo «Диск C»
+echo «Диск C» >> "%REPORT%"
+for /f %%A in ('powershell -NoProfile -Command "[math]::Floor((Get-PSDrive C).Used/1GB)"') do set total_disk=%%A
+for /f %%A in ('powershell -NoProfile -Command "[math]::Floor((Get-PSDrive C).Free/1GB)"') do set free_disk=%%A
+echo Общий размер: %total_disk% ГБ
+echo Свободно: %free_disk% ГБ
+echo Общий размер: %total_disk% ГБ >> "%REPORT%"
+echo Свободно: %free_disk% ГБ >> "%REPORT%"
+echo.
+
+echo «Установленные программы»
+echo «Установленные программы» >> "%REPORT%"
+echo Идёт поиск программ, это может занять несколько минут...
+
+for /f "tokens=2* delims= " %%A in ('reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall" /s /v DisplayName 2^>nul ^| findstr /i "DisplayName"') do (
+    echo %%B
+    echo %%B >> "%REPORT%"
+)
+for /f "tokens=2* delims= " %%A in ('reg query "HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" /s /v DisplayName 2^>nul ^| findstr /i "DisplayName"') do (
+    echo %%B
+    echo %%B >> "%REPORT%"
+)
+/format:list 
+echo. >> "%REPORT%"
+echo Отчёт сохранён >> "%REPORT%"
+echo Отчёт сохранён
+pause
